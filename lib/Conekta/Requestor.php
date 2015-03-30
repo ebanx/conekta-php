@@ -72,9 +72,25 @@ class Conekta_Requestor
 		$opts[CURLOPT_HTTPHEADER] = $headers;
 		$opts[CURLOPT_CAINFO] = dirname(__FILE__) . '/../ssl_data/ca_bundle.crt';
 		curl_setopt_array($curl, $opts);
+		$request_time = microtime(true);
 		$response = curl_exec($curl);
 		$response_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
+		$response_time = microtime(true);
+
+		if (is_callable(self::$_logCallback)) {
+			$callback = self::$_logCallback;
+			$callback((object)array(
+				'method' => $meth,
+				'url' => $url,
+				'params' => $params,
+				'response' => $response,
+				'response_code' => $response_code,
+				'request_time' => $request_time,
+				'response_time' => $response_time
+			));
+		}
+
 		if ($response_code != 200) {
 			Conekta_Error::errorHandler($response, $response_code);
 		}
@@ -109,6 +125,12 @@ class Conekta_Requestor
 			}
 		}
 		return implode("&", $r);
+	}
+
+	private static $_logCallback;
+
+	public static function addLogCallback($callback) {
+		self::$_logCallback = $callback;
 	}
 }
 ?>
